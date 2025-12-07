@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-shadow
 export enum Inc {
   /**
    * Indicates that the Version should be incremented by its MAJOR number.

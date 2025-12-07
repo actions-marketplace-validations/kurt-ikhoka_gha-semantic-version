@@ -3,6 +3,7 @@ import fs from 'fs'
 import {Version} from './version'
 import {VersionInfo} from './version-info'
 import * as core from '@actions/core'
+import {VersionType} from './version-type'
 
 export class SemanticVersion {
   readonly version_name_key: string
@@ -20,10 +21,9 @@ export class SemanticVersion {
     version_code?: number,
     filePath?: string
   ): VersionInfo {
-    core.debug(
-      'update()  type:${updateType} name:${version_name}  code:${version_code}  file:${filePath}'
-    )
-    let old_name: string = version_name ? version_name : ''
+    let old_name: string = version_name ? version_name : '0.0.1'
+    const parsed_version = Version.parse(old_name)
+    old_name = `${parsed_version.major}.${parsed_version.minor}.${parsed_version.patch}`
     let old_code: number = isNaN(version_code ?? NaN)
       ? -1
       : (version_code as number)
@@ -32,8 +32,9 @@ export class SemanticVersion {
       const properties = new Properties(filePath)
       const name = properties.getValue(this.version_name_key)
       const code = properties.getValue(this.version_code_key)
-      core.debug('name  ${name}')
-      core.debug('code  ${code}')
+      core.info(
+        'update()  type:$updateType name:${name}  code:${code}  file:${filePath}'
+      )
 
       if (!code || !this.isNumber(code)) {
         throw new Error('invalid version code')
@@ -44,8 +45,11 @@ export class SemanticVersion {
       old_code = parseInt(code)
       old_name = name
     } else {
-      core.debug('old_name  ${old_name}')
-      core.debug('old_code  ${old_code}')
+      core.debug(`old_name  ${old_name}`)
+      core.debug(`old_code  ${old_code}`)
+      core.debug(
+        `update()  type:${updateType} name:${version_name}  code:${version_code}  file:${filePath}`
+      )
       //else  read version and version code
       if (isNaN(old_code)) {
         throw new Error('invalid version code')
@@ -84,19 +88,29 @@ export class SemanticVersion {
     let new_version: Version
     let new_code: number = code
     new_code = new_code + 1
-    if (update_type === 'major') {
+    if (update_type === VersionType.major) {
       new_version = old_version.nextMajor()
-    } else if (update_type === 'minor') {
+    } else if (update_type === VersionType.minor) {
       new_version = old_version.nextMinor()
-    } else if (update_type === 'patch') {
+    } else if (update_type === VersionType.patch) {
       new_version = old_version.nextPatch()
-    } else if (update_type === 'build') {
-      const preRelease = postfix ? `${postfix}${new_code}` : new_code.toString()
+    } else if (update_type === VersionType.pre_release) {
+      const preRelease = postfix
+        ? `${postfix}.${new_code}`
+        : new_code.toString()
       new_version = old_version.copy(
         old_version.major,
         old_version.minor,
         old_version.patch,
         preRelease
+      )
+    } else if (update_type === VersionType.release) {
+      new_version = Version.create(
+        old_version.major,
+        old_version.minor,
+        old_version.patch,
+        undefined,
+        undefined
       )
     } else {
       throw new Error('invalid update type')

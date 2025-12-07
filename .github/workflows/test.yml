@@ -10,7 +10,7 @@ jobs:
   build: # make sure build/ci work properly
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: |
           npm install
       - run: |
@@ -18,7 +18,7 @@ jobs:
   test: # make sure the action works on a clean machine without building
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: 'PATCH version update'
         uses: ./
         id: patch
@@ -27,10 +27,10 @@ jobs:
           version-code-key: 'bundle.version.code'
           version-name-key: 'bundle.version.name'
           version-name-postfix: 'alpha'
-          update-type: 'build'
+          update-type: 'patch'
       - name: 'Get Patched version'
         run: |
-          echo "Patched 1.0.0"
+          echo "Result"
           echo "Version name: ${{ steps.patch.outputs.new-version-name }}"
           echo "Version code: ${{ steps.patch.outputs.new-version-code }}"
 
@@ -43,7 +43,7 @@ jobs:
           update-type: 'minor'
       - name: 'Get Minored version'
         run: |
-          echo "Minored 1.0.0"
+          echo "Result"
           echo "Version name: ${{ steps.minor.outputs.new-version-name }}"
           echo "Version code: ${{ steps.minor.outputs.new-version-code }}"
 
@@ -56,20 +56,34 @@ jobs:
           update-type: 'major'
       - name: 'Get Majored version'
         run: |
-          echo "Majored 1.0.0"
+          echo "Result"
           echo "Version name: ${{ steps.major.outputs.new-version-name }}"
           echo "Version code: ${{ steps.major.outputs.new-version-code }}"
 
-      - name: 'BUILD version update'
+      - name: 'RELEASE version update'
         uses: ./
-        id: build
+        id: release
         with:
           version-name: '1.0.0'
-          version-code:  0
+          version-code:  1
           version-name-postfix: 'alpha'
-          update-type: 'build'
+          update-type: 'release'
       - name: 'Get Builded version'
         run: |
-          echo "built 1.0.0"
+          echo "Result"
           echo "Version name: ${{ steps.build.outputs.new-version-name }}"
           echo "Version code: ${{ steps.build.outputs.new-version-code }}"
+
+      - name: 'PRE-RELEASE version update'
+        uses: ./
+        id: pre_release
+        with:
+          version-name: '1.0.0'
+          version-code:  1
+          version-name-postfix: 'alpha'
+          update-type: 'pre-release'
+      - name: 'Get Builded version'
+        run: |
+          echo "Result"
+          echo "Version name: ${{ steps.build.outputs.new-version-name }}"
+          echo "Version code: ${{ steps.build.outputs.new-version-code }}"          

@@ -1,4 +1,5 @@
 import fs from 'fs'
+import {VersionType} from './version-type'
 
 export class Validator {
   readonly update_type: string
@@ -12,7 +13,7 @@ export class Validator {
     version_code: string,
     file_path: string
   ) {
-    this.update_type = update_type
+    this.update_type = update_type.toLowerCase()
     this.version_name = version_name !== undefined ? version_name : ''
     this.version_code = version_code !== undefined ? version_code : ''
     this.file_path = file_path !== undefined ? file_path : ''
@@ -24,12 +25,15 @@ export class Validator {
     }
 
     if (
-      this.update_type !== 'major' &&
-      this.update_type !== 'minor' &&
-      this.update_type !== 'patch' &&
-      this.update_type !== 'build'
+      this.update_type !== VersionType.major &&
+      this.update_type !== VersionType.minor &&
+      this.update_type !== VersionType.patch &&
+      this.update_type !== VersionType.pre_release &&
+      this.update_type !== VersionType.release
     ) {
-      throw Error('update_type must be set to  major, minor, patch or build')
+      throw Error(
+        'update_type must be set to  major, minor, patch ,pre-release or release'
+      )
     }
   }
 

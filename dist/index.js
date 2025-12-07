@@ -8,7 +8,6 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Inc = void 0;
-// eslint-disable-next-line no-shadow
 var Inc;
 (function (Inc) {
     /**
@@ -27,7 +26,7 @@ var Inc;
      * Indicates that the Version should be incremented by its PRE-RELEASE identifier.
      */
     Inc["PRE_RELEASE"] = "PRE_RELEASE";
-})(Inc = exports.Inc || (exports.Inc = {}));
+})(Inc || (exports.Inc = Inc = {}));
 
 
 /***/ }),
@@ -83,8 +82,8 @@ function run() {
             const version_file = core.getInput('version-file');
             const version_name_key = core.getInput('version-name-key');
             const version_code_key = core.getInput('version-code-key');
-            const validator = new validator_1.Validator(update_type, version_name, version_code, version_file);
-            core.debug(`update_type: ${update_type}`); // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
+            const validator = new validator_1.Validator(update_type.toLowerCase(), version_name, version_code, version_file);
+            core.debug(`update_type: ${update_type}`);
             core.debug(`version_name: ${version_name}`);
             core.debug(`version_code: ${version_code}`);
             core.debug(`version_file: ${version_file}`);
@@ -206,13 +205,13 @@ class PreRelease {
         return parts;
     }
 }
+exports.PreRelease = PreRelease;
 PreRelease.DEFAULT_INIT_PART = '0';
 PreRelease.onlyNumberRegex = new RegExp('^[0-9]+$');
 PreRelease.onlyAlphaNumericAndHyphenRegex = new RegExp('^[0-9A-Za-z-]+$');
 PreRelease.default = new PreRelease([
     PreRelease.DEFAULT_INIT_PART
 ]);
-exports.PreRelease = PreRelease;
 
 
 /***/ }),
@@ -324,14 +323,16 @@ const fs_1 = __importDefault(__nccwpck_require__(147));
 const version_1 = __nccwpck_require__(217);
 const version_info_1 = __nccwpck_require__(711);
 const core = __importStar(__nccwpck_require__(186));
+const version_type_1 = __nccwpck_require__(183);
 class SemanticVersion {
     constructor(version_name_key, version_code_key) {
         this.version_code_key = version_code_key !== null && version_code_key !== void 0 ? version_code_key : 'version_code';
         this.version_name_key = version_name_key !== null && version_name_key !== void 0 ? version_name_key : 'version_name';
     }
     update(updateType, version_name, version_name_postfix, version_code, filePath) {
-        core.debug('update()  type:${updateType} name:${version_name}  code:${version_code}  file:${filePath}');
-        let old_name = version_name ? version_name : '';
+        let old_name = version_name ? version_name : '0.0.1';
+        const parsed_version = version_1.Version.parse(old_name);
+        old_name = `${parsed_version.major}.${parsed_version.minor}.${parsed_version.patch}`;
         let old_code = isNaN(version_code !== null && version_code !== void 0 ? version_code : NaN)
             ? -1
             : version_code;
@@ -340,8 +341,7 @@ class SemanticVersion {
             const properties = new properties_1.Properties(filePath);
             const name = properties.getValue(this.version_name_key);
             const code = properties.getValue(this.version_code_key);
-            core.debug('name  ${name}');
-            core.debug('code  ${code}');
+            core.info('update()  type:$updateType name:${name}  code:${code}  file:${filePath}');
             if (!code || !this.isNumber(code)) {
                 throw new Error('invalid version code');
             }
@@ -352,8 +352,9 @@ class SemanticVersion {
             old_name = name;
         }
         else {
-            core.debug('old_name  ${old_name}');
-            core.debug('old_code  ${old_code}');
+            core.debug(`old_name  ${old_name}`);
+            core.debug(`old_code  ${old_code}`);
+            core.debug(`update()  type:${updateType} name:${version_name}  code:${version_code}  file:${filePath}`);
             //else  read version and version code
             if (isNaN(old_code)) {
                 throw new Error('invalid version code');
@@ -377,18 +378,23 @@ class SemanticVersion {
         let new_version;
         let new_code = code;
         new_code = new_code + 1;
-        if (update_type === 'major') {
+        if (update_type === version_type_1.VersionType.major) {
             new_version = old_version.nextMajor();
         }
-        else if (update_type === 'minor') {
+        else if (update_type === version_type_1.VersionType.minor) {
             new_version = old_version.nextMinor();
         }
-        else if (update_type === 'patch') {
+        else if (update_type === version_type_1.VersionType.patch) {
             new_version = old_version.nextPatch();
         }
-        else if (update_type === 'build') {
-            const preRelease = postfix ? `${postfix}${new_code}` : new_code.toString();
+        else if (update_type === version_type_1.VersionType.pre_release) {
+            const preRelease = postfix
+                ? `${postfix}.${new_code}`
+                : new_code.toString();
             new_version = old_version.copy(old_version.major, old_version.minor, old_version.patch, preRelease);
+        }
+        else if (update_type === version_type_1.VersionType.release) {
+            new_version = version_1.Version.create(old_version.major, old_version.minor, old_version.patch, undefined, undefined);
         }
         else {
             throw new Error('invalid update type');
@@ -419,9 +425,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Validator = void 0;
 const fs_1 = __importDefault(__nccwpck_require__(147));
+const version_type_1 = __nccwpck_require__(183);
 class Validator {
     constructor(update_type, version_name, version_code, file_path) {
-        this.update_type = update_type;
+        this.update_type = update_type.toLowerCase();
         this.version_name = version_name !== undefined ? version_name : '';
         this.version_code = version_code !== undefined ? version_code : '';
         this.file_path = file_path !== undefined ? file_path : '';
@@ -430,11 +437,12 @@ class Validator {
         if (this.update_type === '') {
             throw Error('update_type is required');
         }
-        if (this.update_type !== 'major' &&
-            this.update_type !== 'minor' &&
-            this.update_type !== 'patch' &&
-            this.update_type !== 'build') {
-            throw Error('update_type must be set to  major, minor, patch or build');
+        if (this.update_type !== version_type_1.VersionType.major &&
+            this.update_type !== version_type_1.VersionType.minor &&
+            this.update_type !== version_type_1.VersionType.patch &&
+            this.update_type !== version_type_1.VersionType.pre_release &&
+            this.update_type !== version_type_1.VersionType.release) {
+            throw Error('update_type must be set to  major, minor, patch ,pre-release or release');
         }
     }
     checkVersioning() {
@@ -478,6 +486,25 @@ class VersionInfo {
     }
 }
 exports.VersionInfo = VersionInfo;
+
+
+/***/ }),
+
+/***/ 183:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.VersionType = void 0;
+var VersionType;
+(function (VersionType) {
+    VersionType["major"] = "major";
+    VersionType["minor"] = "minor";
+    VersionType["patch"] = "patch";
+    VersionType["pre_release"] = "pre-release";
+    VersionType["release"] = "release";
+})(VersionType || (exports.VersionType = VersionType = {}));
 
 
 /***/ }),
@@ -583,11 +610,8 @@ class Version {
         return new Version(this.major, this.minor + 1, 0, pr);
     }
     nextPatch(preRelease) {
-        const patchIncrement = this.preRelease == null || preRelease != null
-            ? this.patch + 1
-            : this.patch;
         const pr = preRelease ? pre_release_1.PreRelease.create(preRelease) : undefined;
-        return new Version(this.major, this.minor, patchIncrement, pr);
+        return new Version(this.major, this.minor, this.patch + 1, pr);
     }
     nextPreRelease(preRelease) {
         const patchNumber = this.preRelease != null ? this.patch : this.patch + 1;
@@ -641,10 +665,10 @@ class Version {
         return Version.create(major, minor, patch, preRelease, buildMetadata);
     }
 }
+exports.Version = Version;
 Version.versionRegex = new RegExp(VERSION_REGEX);
 Version.looseVersionRegex = new RegExp(LOOSE_VERSION_REGEX);
 Version.min = new Version();
-exports.Version = Version;
 
 
 /***/ }),
@@ -1206,7 +1230,7 @@ class OidcClient {
                 .catch(error => {
                 throw new Error(`Failed to get ID Token. \n 
         Error Code : ${error.statusCode}\n 
-        Error Message: ${error.result.message}`);
+        Error Message: ${error.message}`);
             });
             const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
             if (!id_token) {

@@ -22,7 +22,7 @@ inputs:
     description: 'the version code key inside the properties file'
   update-type:
     required: true
-    description: 'the version update type, PATCH, MINOR, MAJOR, BUILD'
+    description: 'the version update type, PATCH, MINOR, MAJOR, PRE-RELEASE, RELEASE'
     default: '1.0.0'
 
 outputs:
@@ -33,5 +33,5 @@ outputs:
     description: "the new version code"
     value: ${{ steps.new-version-generator.outputs.new-version-code }}
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'dist/index.js'

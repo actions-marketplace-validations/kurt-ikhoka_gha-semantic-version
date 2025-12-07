@@ -105,3 +105,4 @@ lib/**/*
 /.idea/inspectionProfiles/Project_Default.xml
 /.idea/vcs.xml
 /.idea/jsLinters/eslint.xml
+/.idea/aws.xml

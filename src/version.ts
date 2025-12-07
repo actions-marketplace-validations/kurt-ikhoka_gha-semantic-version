@@ -129,12 +129,8 @@ export class Version {
   }
 
   nextPatch(preRelease?: string): Version {
-    const patchIncrement =
-      this.preRelease == null || preRelease != null
-        ? this.patch + 1
-        : this.patch
     const pr = preRelease ? PreRelease.create(preRelease) : undefined
-    return new Version(this.major, this.minor, patchIncrement, pr)
+    return new Version(this.major, this.minor, this.patch + 1, pr)
   }
 
   nextPreRelease(preRelease?: string): Version {

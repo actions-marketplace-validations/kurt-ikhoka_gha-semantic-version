@@ -13,12 +13,12 @@ async function run(): Promise<void> {
     const version_code_key: string = core.getInput('version-code-key')
 
     const validator = new Validator(
-      update_type,
+      update_type.toLowerCase(),
       version_name,
       version_code,
       version_file
     )
-    core.debug(`update_type: ${update_type}`) // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
+    core.debug(`update_type: ${update_type}`)
     core.debug(`version_name: ${version_name}`)
     core.debug(`version_code: ${version_code}`)
     core.debug(`version_file: ${version_file}`)
